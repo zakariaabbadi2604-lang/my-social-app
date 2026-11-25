@@ -1,0 +1,347 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn();
+    }
+
+    function isStringBounded(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isIntBounded(val, minVal, maxVal) {
+      return val is int && val >= minVal && val <= maxVal;
+    }
+
+    function isBoundedStringList(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 100));
+    }
+
+    function isValidInstagramMap(ig) {
+      return ig is map
+        && ig.keys().hasAll(['caption', 'hashtags', 'coverHeadline', 'bestTimeHint', 'formatNote'])
+        && ig.keys().hasOnly(['caption', 'hashtags', 'coverHeadline', 'bestTimeHint', 'formatNote'])
+        && isStringBounded(ig.caption, 0, 3000)
+        && isBoundedStringList(ig.hashtags, 35)
+        && isStringBounded(ig.coverHeadline, 0, 250)
+        && isStringBounded(ig.bestTimeHint, 0, 120)
+        && isStringBounded(ig.formatNote, 0, 250);
+    }
+
+    function isValidFacebookMap(fb) {
+      return fb is map
+        && fb.keys().hasAll(['headline', 'postText', 'engagementQuestion', 'hashtags', 'bestTimeHint'])
+        && fb.keys().hasOnly(['headline', 'postText', 'engagementQuestion', 'hashtags', 'bestTimeHint'])
+        && isStringBounded(fb.headline, 0, 300)
+        && isStringBounded(fb.postText, 0, 6000)
+        && isStringBounded(fb.engagementQuestion, 0, 500)
+        && isBoundedStringList(fb.hashtags, 35)
+        && isStringBounded(fb.bestTimeHint, 0, 120);
+    }
+
+    function isValidPinterestMap(pin) {
+      return pin is map
+        && pin.keys().hasAll(['pinTitle', 'pinDescription', 'suggestedBoard', 'destinationLink', 'keywords', 'altText'])
+        && pin.keys().hasOnly(['pinTitle', 'pinDescription', 'suggestedBoard', 'destinationLink', 'keywords', 'altText'])
+        && isStringBounded(pin.pinTitle, 0, 200)
+        && isStringBounded(pin.pinDescription, 0, 1000)
+        && isStringBounded(pin.suggestedBoard, 0, 150)
+        && isStringBounded(pin.destinationLink, 0, 500)
+        && isBoundedStringList(pin.keywords, 30)
+        && isStringBounded(pin.altText, 0, 500);
+    }
+
+    function isValidTikTokMap(tt) {
+      return tt is map
+        && tt.keys().hasAll(['caption', 'onScreenHook', 'hashtags', 'soundOrPacingTip'])
+        && tt.keys().hasOnly(['caption', 'onScreenHook', 'hashtags', 'soundOrPacingTip'])
+        && isStringBounded(tt.caption, 0, 3000)
+        && isStringBounded(tt.onScreenHook, 0, 300)
+        && isBoundedStringList(tt.hashtags, 35)
+        && isStringBounded(tt.soundOrPacingTip, 0, 300);
+    }
+
+    function isValidYouTubeMap(yt) {
+      return yt is map
+        && yt.keys().hasAll(['title', 'description', 'tags', 'hashtags', 'pinnedComment', 'privacyStatus'])
+        && yt.keys().hasOnly(['title', 'description', 'tags', 'hashtags', 'pinnedComment', 'privacyStatus'])
+        && isStringBounded(yt.title, 0, 150)
+        && isStringBounded(yt.description, 0, 5000)
+        && isBoundedStringList(yt.tags, 35)
+        && isBoundedStringList(yt.hashtags, 20)
+        && isStringBounded(yt.pinnedComment, 0, 1000)
+        && (yt.privacyStatus == 'public' || yt.privacyStatus == 'unlisted' || yt.privacyStatus == 'private');
+    }
+
+    function isValidFolderLookup(data) {
+      return data.keys().hasAll([
+          'ownerId', 'folderId', 'folderName', 'videoCount',
+          'savedPostCount', 'language', 'appName', 'appStoreUrl',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'folderId', 'folderName', 'videoCount',
+          'savedPostCount', 'language', 'appName', 'appStoreUrl',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.folderId)
+        && isStringBounded(data.folderName, 1, 200)
+        && isIntBounded(data.videoCount, 0, 10000)
+        && isIntBounded(data.savedPostCount, 0, 10000)
+        && isStringBounded(data.language, 1, 40)
+        && isStringBounded(data.appName, 0, 120)
+        && isStringBounded(data.appStoreUrl, 0, 500)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVideoPostRecord(data, lookupId, videoId) {
+      return data.keys().hasAll([
+          'ownerId', 'lookupId', 'folderId', 'folderName', 'videoId', 'videoName',
+          'mimeType', 'size', 'durationMillis', 'width', 'height', 'webViewLink',
+          'thumbUrl', 'detectedTopic', 'hookAngle', 'appStoreUrl', 'analysisMode',
+          'language', 'generatedAt', 'postStatus', 'instagram', 'facebook', 'pinterest', 'tiktok',
+          'youtube', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'lookupId', 'folderId', 'folderName', 'videoId', 'videoName',
+          'mimeType', 'size', 'durationMillis', 'width', 'height', 'webViewLink',
+          'thumbUrl', 'detectedTopic', 'hookAngle', 'appStoreUrl', 'analysisMode',
+          'language', 'generatedAt', 'postStatus', 'instagram', 'facebook', 'pinterest', 'tiktok',
+          'youtube', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.lookupId)
+        && data.lookupId == lookupId
+        && isValidId(data.folderId)
+        && isStringBounded(data.folderName, 1, 200)
+        && isValidId(data.videoId)
+        && data.videoId == videoId
+        && isStringBounded(data.videoName, 1, 260)
+        && isStringBounded(data.mimeType, 1, 100)
+        && isIntBounded(data.size, 0, 10737418240)
+        && isIntBounded(data.durationMillis, 0, 86400000)
+        && isIntBounded(data.width, 0, 16384)
+        && isIntBounded(data.height, 0, 16384)
+        && isStringBounded(data.webViewLink, 0, 500)
+        && isStringBounded(data.thumbUrl, 0, 1500)
+        && isStringBounded(data.detectedTopic, 1, 500)
+        && isStringBounded(data.hookAngle, 0, 500)
+        && isStringBounded(data.appStoreUrl, 0, 500)
+        && (data.analysisMode == 'full_video' || data.analysisMode == 'frame_and_metadata')
+        && isStringBounded(data.language, 1, 40)
+        && isStringBounded(data.generatedAt, 1, 64)
+        && (data.postStatus == 'unprocessed' || data.postStatus == 'ready')
+        && isValidInstagramMap(data.instagram)
+        && isValidFacebookMap(data.facebook)
+        && isValidPinterestMap(data.pinterest)
+        && isValidTikTokMap(data.tiktok)
+        && isValidYouTubeMap(data.youtube)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDeliveryLog(data) {
+      return data.keys().hasAll([
+          'ownerId', 'folderId', 'folderName', 'videoId', 'videoName',
+          'triggeredBy', 'timestamp', 'results', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'folderId', 'folderName', 'videoId', 'videoName',
+          'triggeredBy', 'timestamp', 'results', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.folderId)
+        && isStringBounded(data.folderName, 1, 200)
+        && isValidId(data.videoId)
+        && isStringBounded(data.videoName, 1, 260)
+        && (data.triggeredBy == 'manual' || data.triggeredBy == 'auto_watch')
+        && isStringBounded(data.timestamp, 1, 64)
+        && data.results is list
+        && data.results.size() >= 1
+        && data.results.size() <= 5
+        && data.results[0] is map
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPreferences(data, userId) {
+      return data.keys().hasAll([
+          'ownerId', 'language', 'tone', 'brandHandle', 'callToAction',
+          'targetAudience', 'appStoreUrl', 'appName', 'analysisDepth',
+          'lastFolderId', 'lastFolderName', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'language', 'tone', 'brandHandle', 'callToAction',
+          'targetAudience', 'appStoreUrl', 'appName', 'analysisDepth',
+          'lastFolderId', 'lastFolderName', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.ownerId == userId
+        && isStringBounded(data.language, 1, 40)
+        && isStringBounded(data.tone, 1, 60)
+        && isStringBounded(data.brandHandle, 0, 120)
+        && isStringBounded(data.callToAction, 0, 250)
+        && isStringBounded(data.targetAudience, 0, 250)
+        && isStringBounded(data.appStoreUrl, 0, 500)
+        && isStringBounded(data.appName, 0, 120)
+        && (data.analysisDepth == 'fast' || data.analysisDepth == 'deep')
+        && isStringBounded(data.lastFolderId, 0, 128)
+        && isStringBounded(data.lastFolderName, 0, 200)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /folderLookups/{lookupId} {
+      allow get: if isSignedIn()
+        && isValidId(lookupId)
+        && (resource == null || existing().ownerId == request.auth.uid);
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser()
+        && isValidId(lookupId)
+        && isValidFolderLookup(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(lookupId)
+        && isValidFolderLookup(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().folderId == existing().folderId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'folderName', 'videoCount', 'savedPostCount', 'language', 'appName', 'appStoreUrl', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidId(lookupId)
+        && existing().ownerId == request.auth.uid;
+
+      match /videoPosts/{videoId} {
+        allow get: if isSignedIn()
+          && isValidId(lookupId)
+          && isValidId(videoId)
+          && (resource == null || existing().ownerId == request.auth.uid);
+
+        allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(lookupId)
+          && isValidId(videoId)
+          && isValidVideoPostRecord(incoming(), lookupId, videoId)
+          && incoming().ownerId == request.auth.uid
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isVerifiedUser()
+          && isValidId(lookupId)
+          && isValidId(videoId)
+          && isValidVideoPostRecord(incoming(), lookupId, videoId)
+          && existing().ownerId == request.auth.uid
+          && incoming().ownerId == existing().ownerId
+          && incoming().lookupId == existing().lookupId
+          && incoming().folderId == existing().folderId
+          && incoming().videoId == existing().videoId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'folderName', 'videoName', 'mimeType', 'size', 'durationMillis',
+              'width', 'height', 'webViewLink', 'thumbUrl', 'detectedTopic',
+              'hookAngle', 'appStoreUrl', 'analysisMode', 'language', 'generatedAt',
+              'postStatus', 'instagram', 'facebook', 'pinterest', 'tiktok', 'youtube', 'updatedAt'
+            ])
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidId(lookupId)
+          && isValidId(videoId)
+          && existing().ownerId == request.auth.uid
+      }
+    }
+
+    match /deliveryLogs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser()
+        && isValidId(logId)
+        && isValidDeliveryLog(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if false;
+
+      allow delete: if isVerifiedUser()
+        && isValidId(logId)
+        && existing().ownerId == request.auth.uid;
+    }
+
+    match /userPreferences/{userId} {
+      allow get: if isSignedIn()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && (resource == null || existing().ownerId == request.auth.uid);
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && isValidUserPreferences(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && isValidUserPreferences(incoming(), userId)
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'language', 'tone', 'brandHandle', 'callToAction',
+            'targetAudience', 'appStoreUrl', 'appName', 'analysisDepth',
+            'lastFolderId', 'lastFolderName', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && existing().ownerId == request.auth.uid;
+    }
+  }
+}

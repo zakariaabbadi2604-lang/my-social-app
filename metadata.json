@@ -1,0 +1,6 @@
+{
+  "name": "DriveCast Studio",
+  "description": "Connect a Google Drive folder, analyze each video with AI, generate tailored posts for Instagram, Facebook, Pinterest, and TikTok, and deliver them automatically for publishing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

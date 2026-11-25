@@ -1,0 +1,216 @@
+/**
+ * Adversarial "Dirty Dozen" Security Rules Test Specification for DriveCast Studio.
+ * Designed for verification against firestore.rules using @firebase/rules-unit-testing.
+ */
+
+export interface DirtyDozenCase {
+  id: number;
+  name: string;
+  actorUid: string | null;
+  emailVerified: boolean;
+  operation: 'create' | 'update' | 'delete' | 'get' | 'list';
+  path: string;
+  payload?: Record<string, unknown>;
+  expected: 'PERMISSION_DENIED';
+}
+
+export const DIRTY_DOZEN_PAYLOADS: DirtyDozenCase[] = [
+  {
+    id: 1,
+    name: 'Unauthenticated create on folderLookups',
+    actorUid: null,
+    emailVerified: false,
+    operation: 'create',
+    path: 'folderLookups/userA_folder1',
+    payload: {
+      ownerId: 'userA',
+      folderId: 'folder1',
+      folderName: 'My Reels',
+      videoCount: 1,
+      savedPostCount: 0,
+      language: 'English',
+      appName: '',
+      appStoreUrl: '',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 2,
+    name: 'Unverified email create on folderLookups',
+    actorUid: 'userA',
+    emailVerified: false,
+    operation: 'create',
+    path: 'folderLookups/userA_folder1',
+    payload: {
+      ownerId: 'userA',
+      folderId: 'folder1',
+      folderName: 'My Reels',
+      videoCount: 1,
+      savedPostCount: 0,
+      language: 'English',
+      appName: '',
+      appStoreUrl: '',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 3,
+    name: 'Identity spoofing ownerId on create',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/userB_folder1',
+    payload: {
+      ownerId: 'userB',
+      folderId: 'folder1',
+      folderName: 'Spoofed Folder',
+      videoCount: 1,
+      savedPostCount: 0,
+      language: 'English',
+      appName: '',
+      appStoreUrl: '',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 4,
+    name: 'Shadow ghost field injection on create',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/userA_folder1',
+    payload: {
+      ownerId: 'userA',
+      folderId: 'folder1',
+      folderName: 'My Reels',
+      videoCount: 1,
+      savedPostCount: 0,
+      language: 'English',
+      appName: '',
+      appStoreUrl: '',
+      isAdmin: true,
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 5,
+    name: 'Client-spoofed createdAt timestamp',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/userA_folder1',
+    payload: {
+      ownerId: 'userA',
+      folderId: 'folder1',
+      folderName: 'My Reels',
+      videoCount: 1,
+      savedPostCount: 0,
+      language: 'English',
+      appName: '',
+      appStoreUrl: '',
+      createdAt: '2020-01-01T00:00:00Z',
+      updatedAt: '2020-01-01T00:00:00Z',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 6,
+    name: 'ID poisoning with invalid characters',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/bad$id!with*chars',
+    payload: {
+      ownerId: 'userA',
+      folderId: 'folder1',
+      folderName: 'My Reels',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 7,
+    name: 'Orphaned videoPosts write without parent folderLookup',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/missing_lookup/videoPosts/vid1',
+    payload: {
+      ownerId: 'userA',
+      lookupId: 'missing_lookup',
+      folderId: 'folder1',
+      folderName: 'My Reels',
+      videoId: 'vid1',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 8,
+    name: 'Cross-tenant videoPosts write under another user folderLookup',
+    actorUid: 'userB',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/userA_folder1/videoPosts/vid1',
+    payload: {
+      ownerId: 'userB',
+      lookupId: 'userA_folder1',
+      folderId: 'folder1',
+      folderName: 'Hijacked',
+      videoId: 'vid1',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 9,
+    name: 'Immortal field ownerId mutation on update',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'update',
+    path: 'folderLookups/userA_folder1',
+    payload: {
+      ownerId: 'userB',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 10,
+    name: 'Value poisoning oversized folderName on update',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'update',
+    path: 'folderLookups/userA_folder1',
+    payload: {
+      folderName: 'A'.repeat(500),
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 11,
+    name: 'Array exhaustion exceeding 35 hashtags in Instagram post',
+    actorUid: 'userA',
+    emailVerified: true,
+    operation: 'create',
+    path: 'folderLookups/userA_folder1/videoPosts/vid1',
+    payload: {
+      ownerId: 'userA',
+      lookupId: 'userA_folder1',
+      videoId: 'vid1',
+      instagram: {
+        caption: 'Test',
+        hashtags: Array.from({ length: 40 }, (_, i) => `#tag${i}`),
+        coverHeadline: 'Test',
+        bestTimeHint: '6 PM',
+        formatNote: '9:16',
+      },
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    id: 12,
+    name: 'Blanket list query without ownerId filter',
+    actorUid: 'userB',
+    emailVerified: true,
+    operation: 'list',
+    path: 'folderLookups',
+    expected: 'PERMISSION_DENIED',
+  },
+];

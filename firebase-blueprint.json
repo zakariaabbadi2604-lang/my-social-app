@@ -1,0 +1,425 @@
+{
+  "entities": {
+    "FolderLookup": {
+      "title": "FolderLookup",
+      "description": "A saved Google Drive folder search/batch created by a signed-in user, storing the Drive folder name, folder ID, and summary metrics.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the user who owns this folder lookup."
+        },
+        "folderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Google Drive folder ID."
+        },
+        "folderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable Google Drive folder name where the reels originated."
+        },
+        "videoCount": {
+          "type": "integer",
+          "description": "Number of videos detected in this Google Drive folder."
+        },
+        "savedPostCount": {
+          "type": "integer",
+          "description": "Number of videos in this folder with saved generated posts."
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Selected generation language for the folder lookup."
+        },
+        "appName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Optional app name included in post copy."
+        },
+        "appStoreUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional Google Play Store URL included in post copy."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when this folder lookup was first saved."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when this folder lookup was last updated."
+        }
+      },
+      "required": [
+        "ownerId",
+        "folderId",
+        "folderName",
+        "videoCount",
+        "savedPostCount",
+        "language",
+        "appName",
+        "appStoreUrl",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VideoPostRecord": {
+      "title": "VideoPostRecord",
+      "description": "Persisted 5-platform social post generation result (Instagram, Facebook, Pinterest, TikTok, YouTube Shorts) for a specific Google Drive reel inside a FolderLookup.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "lookupId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent FolderLookup document ID."
+        },
+        "folderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Google Drive folder ID."
+        },
+        "folderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Google Drive folder name where this reel came from."
+        },
+        "videoId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Google Drive file ID for the video."
+        },
+        "videoName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 260,
+          "description": "Video filename in Google Drive."
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Video MIME type."
+        },
+        "size": {
+          "type": "integer",
+          "description": "File size in bytes."
+        },
+        "durationMillis": {
+          "type": "integer",
+          "description": "Video duration in milliseconds."
+        },
+        "width": {
+          "type": "integer",
+          "description": "Video pixel width."
+        },
+        "height": {
+          "type": "integer",
+          "description": "Video pixel height."
+        },
+        "webViewLink": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Google Drive webViewLink."
+        },
+        "thumbUrl": {
+          "type": "string",
+          "maxLength": 1500,
+          "description": "Relative or signed thumbnail URL."
+        },
+        "detectedTopic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Detected topic/summary for the reel."
+        },
+        "hookAngle": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Recommended hook angle."
+        },
+        "appStoreUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Google Play Store URL used during generation."
+        },
+        "analysisMode": {
+          "type": "string",
+          "enum": ["full_video", "frame_and_metadata"],
+          "description": "Mode used to analyze the reel."
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Language of the generated posts."
+        },
+        "generatedAt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "ISO timestamp when the posts were generated."
+        },
+        "postStatus": {
+          "type": "string",
+          "enum": ["unprocessed", "ready"],
+          "description": "Whether 5-platform social posts have been generated for this reel yet."
+        },
+        "instagram": {
+          "type": "object",
+          "description": "Instagram Reels post fields (caption, hashtags, coverHeadline, bestTimeHint, formatNote)."
+        },
+        "facebook": {
+          "type": "object",
+          "description": "Facebook Page video post fields (headline, postText, engagementQuestion, hashtags, bestTimeHint)."
+        },
+        "pinterest": {
+          "type": "object",
+          "description": "Pinterest Video Pin fields (pinTitle, pinDescription, suggestedBoard, destinationLink, keywords, altText)."
+        },
+        "tiktok": {
+          "type": "object",
+          "description": "TikTok post fields (caption, onScreenHook, hashtags, soundOrPacingTip)."
+        },
+        "youtube": {
+          "type": "object",
+          "description": "YouTube Shorts post fields (title, description, tags, hashtags, pinnedComment, privacyStatus)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when this post record was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when this post record was last updated."
+        }
+      },
+      "required": [
+        "ownerId",
+        "lookupId",
+        "folderId",
+        "folderName",
+        "videoId",
+        "videoName",
+        "mimeType",
+        "size",
+        "durationMillis",
+        "width",
+        "height",
+        "webViewLink",
+        "thumbUrl",
+        "detectedTopic",
+        "hookAngle",
+        "appStoreUrl",
+        "analysisMode",
+        "language",
+        "generatedAt",
+        "postStatus",
+        "instagram",
+        "facebook",
+        "pinterest",
+        "tiktok",
+        "youtube",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DeliveryLog": {
+      "title": "DeliveryLog",
+      "description": "Persisted delivery execution log for a reel sent to webhooks or direct platform APIs.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "folderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "folderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "videoId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "videoName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "triggeredBy": {
+          "type": "string",
+          "enum": ["manual", "auto_watch"]
+        },
+        "timestamp": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "results": {
+          "type": "array",
+          "description": "Platform delivery statuses (max 5 items)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "folderId",
+        "folderName",
+        "videoId",
+        "videoName",
+        "triggeredBy",
+        "timestamp",
+        "results",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "Per-user persisted creator brief settings and last active Drive folder reference.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "tone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "brandHandle": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "callToAction": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "targetAudience": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "appStoreUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "appName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "analysisDepth": {
+          "type": "string",
+          "enum": ["fast", "deep"]
+        },
+        "lastFolderId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "lastFolderName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "language",
+        "tone",
+        "brandHandle",
+        "callToAction",
+        "targetAudience",
+        "appStoreUrl",
+        "appName",
+        "analysisDepth",
+        "lastFolderId",
+        "lastFolderName",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/folderLookups/{lookupId}": {
+      "schema": {
+        "$ref": "#/entities/FolderLookup"
+      },
+      "description": "Stores each user's saved Google Drive folder searches tagged with the folder name and counts."
+    },
+    "/folderLookups/{lookupId}/videoPosts/{videoId}": {
+      "schema": {
+        "$ref": "#/entities/VideoPostRecord"
+      },
+      "description": "Stores persisted 5-platform generated posts for each reel inside a saved Google Drive folder lookup."
+    },
+    "/deliveryLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/DeliveryLog"
+      },
+      "description": "Stores persistent delivery execution logs per user."
+    },
+    "/userPreferences/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserPreferences"
+      },
+      "description": "Stores each user's saved generation brief settings and last active Drive folder."
+    }
+  }
+}
